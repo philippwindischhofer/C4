@@ -42,6 +42,9 @@ class Board:
             print('')
         self._print_hor_separator()
 
+    def get_board_representation(self):
+        return self.board.tostring()
+        
     def get_legal_moves(self):
         retval = []
         for col in range(self.cols):
