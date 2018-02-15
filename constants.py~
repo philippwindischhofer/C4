@@ -1,0 +1,5 @@
+PLAYER_1 = 1
+PLAYER_2 = 2
+PLAYER_1_COLOR = 'red'
+PLAYER_2_COLOR = 'green'
+    

@@ -1,0 +1,2 @@
+class ModelConfig:
+    num_conv_blocks = 2
