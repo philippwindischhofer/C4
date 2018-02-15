@@ -15,14 +15,14 @@ class Game:
         while True:
             # player 1 is always the first one to move
             self.board.place_stone(self.player_1.move(self.board))
-            #self.board.print_board()
+            self.board.print_board()
             winner = self.board.status
             if winner != NOT_TERMINATED:
                 break
 
             # then comes player 2
             self.board.place_stone(self.player_2.move(self.board))
-            #self.board.print_board()
+            self.board.print_board()
             winner = self.board.status
             if winner != NOT_TERMINATED:
                 break

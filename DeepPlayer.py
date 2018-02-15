@@ -6,7 +6,7 @@ import copy
 class DeepPlayer:
     def __init__(self, model, tree):
         self.model = model
-        self.MCTS_iter = 25
+        self.MCTS_iter = 40
 
         # keep track of the probabilities and the game situations that were encountered
         self.prob_history = []
@@ -37,7 +37,11 @@ class DeepPlayer:
                 
         # now sample a move from the improved distribution
         self.moves_played += 1
-        action_played = np.random.choice(action, p = prob)
+
+        if self.moves_played >= 0:
+            action_played = action[np.argmax(prob)]
+        else:
+            action_played = np.random.choice(action, p = prob)
 
         return action_played
 
@@ -58,7 +62,7 @@ class MCTS:
     def __init__(self, model):
         self.model = model
 
-        self.c_exp = 0.5 # sets the exploration fraction during the tree search
+        self.c_exp = 1.0 # sets the exploration fraction during the tree search
 
         # properties associated to the positions
         self.boards = {} # holds all the boards ...

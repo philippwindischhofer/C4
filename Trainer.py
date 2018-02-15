@@ -54,6 +54,7 @@ class Trainer:
             if wins < 0.55:
                 # the trained model works not significantly better than the older one, thus keep the older one and retry with more training data
                 self.model = old_model
+                self.setup()
                 print("wins = " + str(wins) + " -> keeping old model")
             else:
                 print("wins = " + str(wins) + " -> keeping trained model")
