@@ -9,22 +9,21 @@ from utils import Evaluator
 
 from config import ModelConfig
 
+config = ModelConfig()
+model = C4Model(config)
+model.build()
 
+# make a trainer to train the model on self-play data
+model.load(filename = 'best-1.tar') # keep going from the previous state of the art
+trainer = Trainer(model)
+trainer.setup()
+trainer.train_epoch(games = 100, training_epochs = 50, generations = 10)
 
+# evaluate the trained model against a random player
+#model.load(filename = 'best-1.tar')
+#wins, draws = Evaluator.combat_random(model, 40)
+#print("wins = " + str(wins))
 
-# config = ModelConfig()
-# model = C4Model(config)
-# model.build()
-
-# # make a trainer to train the model on self-play data
-# trainer = Trainer(model)
-# trainer.setup()
-# losses_before, draws_before = Evaluator.combat_random(trainer.get_trained_model(), 10)
-# trainer.train_epoch(games = 10, epochs = 20, generations = 1)
-# losses_during, draws_during = Evaluator.combat_random(trainer.get_trained_model(), 10)
-# trainer.train_epoch(games = 10, epochs = 20, generations = 1)
-# losses_after, draws_after = Evaluator.combat_random(trainer.get_trained_model(), 10)
-
-# print("losses before training: " + str(losses_before))
-# print("losses during training: " + str(losses_during))
-# print("losses after training: " + str(losses_after))
+# evaluate the trained model against a human player
+#model.load(filename = 'best-1.tar')
+#Evaluator.combat_human(model, 1)

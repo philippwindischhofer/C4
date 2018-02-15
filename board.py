@@ -41,9 +41,6 @@ class Board:
                     print(colored('   ', 'grey'), end = '')
             print('')
         self._print_hor_separator()
-
-    def get_board_representation(self):
-        return self.board.tostring()
         
     def get_legal_moves(self):
         retval = []
@@ -65,6 +62,9 @@ class Board:
         retval[0][0] = (self.board == self.last_player) * 1.0        
         retval[0][1] = (self.board == oplayer) * 1.0
         return retval
+
+    def get_board_representation(self):
+        return self.board.tostring()
         
     def place_stone(self, col):
         if col >= self.cols:

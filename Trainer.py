@@ -3,39 +3,68 @@ from DeepPlayer import *
 from keras.optimizers import SGD
 import model
 import copy
+from utils import Evaluator
 
 class Trainer:
     def __init__(self, model):
         self.model = model
         self.optimizer = None
+        self.tree = MCTS(model)
 
-    def train_epoch(self, games, epochs, generations):
+    def train_epoch(self, games, training_epochs, generations):
+        board_data_acc = []
+        prob_data_acc = []
+        value_data_acc = []
+        
         for _ in range(generations):
-            board_data = []
-            prob_data = []
-            value_data = []
-            
+             
             for __ in range(games):
                 # have both players use the same underlying model ("self-play")
-                player_1 = DeepPlayer(self.model, PLAYER_1)
-                player_2 = DeepPlayer(self.model, PLAYER_2)
-                
+                # the only reason that need two objects here is to keep track of their respective moves
+                player_1 = DeepPlayer(self.model, self.tree)
+                player_2 = DeepPlayer(self.model, self.tree)
+                 
                 # prepare one additional game's worth of training data
+                print("generating training data")
                 board_data_new, prob_data_new, value_data_new = self._generate_training_data(player_1, player_2)
-                
-                board_data += board_data_new
-                prob_data += prob_data_new
-                value_data += value_data_new
+                 
+                board_data_acc += board_data_new
+                prob_data_acc += prob_data_new
+                value_data_acc += value_data_new
 
-            bs = np.size(value_data)
+                print("generated " + str(len(value_data_new)) + " moves, total accumulated dataset = " + str(len(value_data_acc)) + " moves")
 
-            board_data = np.squeeze(np.array(board_data), axis = 1) # remove the excess dimension
-            prob_data = np.squeeze(np.array(prob_data), axis = 1) # here as well
-            value_data = np.array(value_data)
+            bs = np.size(value_data_acc)
+
+            board_data = np.squeeze(np.array(board_data_acc), axis = 1) # remove the excess dimension
+            prob_data = np.squeeze(np.array(prob_data_acc), axis = 1) # here as well
+            value_data = np.array(value_data_acc)
+
+            self.model.save() # save the old model before the new training step
+            old_model = C4Model(self.model.config) # create a second one with the same configuration
+            old_model.build()
+            old_model.load()
             
             # now can train the model
-            self.model.model.fit(board_data, [prob_data, value_data], batch_size = bs, epochs = epochs)
-            
+            self.model.model.fit(board_data, [prob_data, value_data], batch_size = bs, epochs = training_epochs)
+
+            # now need to compare the old and the new model against each other to decide which one to keep
+            print("Evaluating trained model")
+            wins, draws = Evaluator.combat_model(self.model, old_model, 40)
+            if wins < 0.55:
+                # the trained model works not significantly better than the older one, thus keep the older one and retry with more training data
+                self.model = old_model
+                print("wins = " + str(wins) + " -> keeping old model")
+            else:
+                print("wins = " + str(wins) + " -> keeping trained model")
+                self.model.save(filename = 'best.tar') # save it as the new current best model
+                self.tree.reset() # reset the tree, since now the neural network has changed
+
+                # reset also the training data
+                board_data_acc = []
+                prob_data_acc = []
+                value_data_acc = []
+                
     def _generate_training_data(self, player_1, player_2):
         # first need to generate the training data
         training_game = Game(player_1, player_2)
@@ -45,10 +74,8 @@ class Trainer:
         prob_data = np.array(player_1.prob_history + player_2.prob_history)
 
         if res == PLAYER_1_WINS:
-            print("player 1 won")
             value_data = np.concatenate((np.full(player_1.moves_played, 1.0), np.full(player_2.moves_played, -1.0)))
         elif res == PLAYER_2_WINS:
-            print("player 2 won")
             value_data = np.concatenate((np.full(player_1.moves_played, -1.0), np.full(player_2.moves_played, 1.0)))
         elif res == DRAW:
             value_data = np.concatenate((np.full(player_1.moves_played, 0.0), np.full(player_2.moves_played, 0.0)))

@@ -7,7 +7,7 @@ from keras.layers.merge import Add
 from keras.layers.normalization import BatchNormalization
 from keras.losses import mean_squared_error
 from keras.regularizers import l2
-
+import os
 from config import ModelConfig
 
 class C4Model:
@@ -15,6 +15,17 @@ class C4Model:
     def __init__(self, config: ModelConfig):
         self.config = config
         self.model = None
+
+    def save(self, folder = 'weights', filename = 'temp.tar'):
+        path = os.path.join(folder, filename)
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+
+        self.model.save_weights(path)
+
+    def load(self, folder = 'weights', filename = 'temp.tar'):
+        path = os.path.join(folder, filename)
+        self.model.load_weights(path)
 
     def build(self):
         # build the first layer that directly connects to the input

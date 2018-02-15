@@ -4,11 +4,9 @@ import numpy as np
 import copy
 
 class DeepPlayer:
-    def __init__(self, model, player):
+    def __init__(self, model, tree):
         self.model = model
-        self.c_exp = 0.5 # sets the exploration fraction during the tree search
-        self.MCTS_iter = 100
-        self.player = player # need to know on which side we are!
+        self.MCTS_iter = 25
 
         # keep track of the probabilities and the game situations that were encountered
         self.prob_history = []
@@ -16,27 +14,19 @@ class DeepPlayer:
         self.moves_played = 0
 
         # this holds the root node of the tree
-        self.tree = None
+        self.tree = tree
 
     def move(self, board):
         # first, backup the board situation on which this move is going to be based
         self.board_history.append(copy.deepcopy(board))
-        
-        # invoke the model here and compute the move, given the board as input data (also add the tree improvement)
-        raw_eval = self.model.model.predict(x = board.get_position(), verbose = 0, batch_size = 1)
-        
-        prior = raw_eval[0][0]
-        value = raw_eval[1][0][0]
-        
-        # start up the tree improvement: build the root node of the tree
-        self.tree = GameState(board, prior, value)
-
-        # now run the MCTS for a fixed number of times
+    
+        # find the best move by MCTS:
+        # first, run the MCTS for a fixed number of times
         for i in range(self.MCTS_iter):
-            self._search(self.tree, self.model)
+            self.tree.search(board)
 
-        # read out the final tree-improved answer for the moves to take (and their probabilities)
-        action, prob = self.tree.get_moves()
+        # second, read out the final tree-improved answer for the moves to take (and their probabilities)
+        action, prob = self.tree.get_moves(board)
 
         # now, also backup the tree-improved probabilities for the next move (insert a zero if a move is illegal)
         prob_backup = np.zeros(board.cols)
@@ -48,8 +38,6 @@ class DeepPlayer:
         # now sample a move from the improved distribution
         self.moves_played += 1
         action_played = np.random.choice(action, p = prob)
-
-        # retain the entire tree, but make the actually played node the new root node
 
         return action_played
 
@@ -63,16 +51,64 @@ class DeepPlayer:
         self.prob_history = []
         self.board_history = []
         self.moves_played = 0
+        self.tree.reset()
 
+class MCTS:
+
+    def __init__(self, model):
+        self.model = model
+
+        self.c_exp = 0.5 # sets the exploration fraction during the tree search
+
+        # properties associated to the positions
+        self.boards = {} # holds all the boards ...
+        self.values = {} # ... and their values
+
+        # properties associated to the moves (actions) that link positions
+        self.Q = {}
+        self.N = {}
+        self.P = {} # ... the prior probabilities computed by the network
+
+    def reset(self):
+        # properties associated to the positions
+        self.boards = {} # holds all the boards ...
+        self.values = {} # ... and their values
+
+        # properties associated to the moves (actions) that link positions
+        self.Q = {}
+        self.N = {}
+        self.P = {} # ... the prior probabilities computed by the network
+        
     # does *one* simulation run (in the sense of MCTS) starting from the node "state" and updates the tree
     # NOTE: all rewards are from the point of view of the player who is going to move next -> s.t. at every step in the recursion, can look at the MAXIMUM of the U-values (as exploration-corrected, averaged v-values)
-    def _search(self, state, model):
-
-        #print("running search")
+    def search(self, board):
         
-        if state.board.status != NOT_TERMINATED:
+        if board.status != NOT_TERMINATED:
             # this game is actually already done, can return the correct result, as per the rules
-            return -state.board.get_reward()
+            return -board.get_reward()
+
+        # prepare the key to look up this position in the tree
+        key = board.get_board_representation()
+        valid = board.get_legal_moves()
+        
+        # sit on a leaf node
+        if key not in self.boards:
+            # evaluate this position using the model associated with this tree ...
+            new_eval = self.model.model.predict(x = board.get_position(), verbose = 0, batch_size = 1)
+            prior = new_eval[0][0]
+            v = new_eval[1][0][0]
+
+            # ... add it to the tree ...
+            self.boards[key] = copy.deepcopy(board)
+            self.values[key] = v
+
+            # ... and initialize all the links going to other positions
+            for action in valid:
+                self.P[(key, action)] = prior[action]
+                self.Q[(key, action)] = 0
+                self.N[(key, action)] = 0
+            
+            return -v            
 
         # game is not yet over, need to search through the tree to find the one with the highest U-value
         max_U = -float("inf")
@@ -80,89 +116,45 @@ class DeepPlayer:
 
         # compute for the normalization N_tot = sqrt(N_a)
         N_tot = 0
-        for action in state.actions:
-            N_tot += action.N
+        for action in valid:
+            N_tot += self.N[(key, action)]
         
-        for action in state.actions:
-            # compute the U values for the local actions
-            cur_U = action.Q + self.c_exp * action.P * np.sqrt(N_tot) / (1 + action.N)
+        for action in valid:
+            # compute the U values for the locally available actions
+            cur_U = self.Q[(key, action)] + self.c_exp * self.P[(key, action)] * np.sqrt(N_tot) / (1 + self.N[(key, action)])
             if cur_U > max_U:
                 max_U = cur_U
                 best_action = action
 
-        # "best_action" now contains the action with the highest U-value
-        if best_action.linked_state() is None:
-            # have reached a leaf node of the tree, extend the tree in this direction
-            # first, need to make a copy of the current board, then apply this action
-            new_board = copy.deepcopy(state.board)
-            new_board.place_stone(best_action.action)
+        # follow the best path
+        new_board = copy.deepcopy(board)
+        new_board.place_stone(best_action)
+                
+        # the tree continues here, can just go on
+        v = self.search(new_board) # this is the value resulting from the tree search
 
-            new_eval = self.model.model.predict(x = new_board.get_position(), verbose = 0, batch_size = 1)
-            prior = new_eval[0][0]
-            v = new_eval[1][0][0]
-
-            # then create the new game state ...
-            new_state = GameState(new_board, prior, v)
-
-            # ... and integrate it into the tree
-            best_action.link(new_state)
-
-            return -v
-        else:
-            # the tree continues here, can just go on
-            v = self._search(best_action.linked_state(), model) # this is the value resulting from the tree search
-
-            # update the link of the best action that was just taken
-            best_action.Q = (best_action.Q * best_action.N + v) / (best_action.N + 1)
-            best_action.N += 1
-
-            return -v
-
-# represents a valid, legal action that can be taken, connecting two board positions
-class GameAction:
-    def __init__(self, action):
-        # for a new link, initialize them with the standard values
-        self.Q = 0
-        self.N = 0
-        self.P = 0
-        self.action = action
-        self.new_state = None
-
-    def link(self, new_state):
-        self.new_state = new_state
-
-    def linked_state(self):
-        return self.new_state
+        # update the link of the best action that was just taken
+        self.Q[(key, best_action)] = (self.Q[(key, best_action)] * self.N[(key, best_action)] + v) / (self.N[(key, best_action)] + 1)
+        self.N[(key, best_action)] += 1
         
-# represents a certain (momentary) state in the game, i.e. a board position, together with the links to all other positions that can be reached from here
-class GameState:
-    def __init__(self, board, prior, value):
-        # for a new tree node, set the board, prior probabilities and values coming from the neural network
-        self.board = board
-        self.value = value
+        return -v
 
-        # for a new tree node, also generate all possible (empty) actions that can be taken ...
-        self.actions = []
-        for action in board.get_legal_moves():
-            self.actions.append(GameAction(action))
-            
-        # ... and initialize them with the prior probabilities
-        for action in self.actions:
-            action.P = prior[action.action]
-
-        # NOTE: Q and N stay initialized with zero!
-
-    # returns the array of the possible moves, and their probabilities (given by the frequency with which they were visited)
-    def get_moves(self):
+        # returns the array of the possible moves, and their probabilities (given by the frequency with which they were visited)
+    def get_moves(self, board):
         N_tot = 0
         prob_out = []
         action_out = []
 
-        for action in self.actions:
-            N_tot += action.N
+        key = board.get_board_representation()
+        valid = board.get_legal_moves()
+        
+        for action in valid:
+            N_tot += self.N[(key, action)]
 
-        for action in self.actions:
-            prob_out.append(action.N / N_tot)
-            action_out.append(action.action)
+        for action in valid:
+            prob_out.append(self.N[(key, action)] / N_tot)
+            action_out.append(action)
 
         return action_out, prob_out
+
+    
