@@ -15,9 +15,11 @@ class Trainer:
         board_data_acc = []
         prob_data_acc = []
         value_data_acc = []
+        bestcnt = 0
         
         for _ in range(generations):
-             
+
+            print("generating training data")
             for __ in range(games):
                 # have both players use the same underlying model ("self-play")
                 # the only reason that need two objects here is to keep track of their respective moves
@@ -25,14 +27,13 @@ class Trainer:
                 player_2 = DeepPlayer(self.model, self.tree)
                  
                 # prepare one additional game's worth of training data
-                print("generating training data")
                 board_data_new, prob_data_new, value_data_new = self._generate_training_data(player_1, player_2)
                  
                 board_data_acc += board_data_new
                 prob_data_acc += prob_data_new
                 value_data_acc += value_data_new
 
-                print("generated " + str(len(value_data_new)) + " moves, total accumulated dataset = " + str(len(value_data_acc)) + " moves")
+                print("generated " + str(len(value_data_new)) + " moves (including symmetries), total accumulated dataset = " + str(len(value_data_acc)) + " moves")
 
             bs = np.size(value_data_acc)
 
@@ -58,7 +59,8 @@ class Trainer:
                 print("wins = " + str(wins) + " -> keeping old model")
             else:
                 print("wins = " + str(wins) + " -> keeping trained model")
-                self.model.save(filename = 'best.tar') # save it as the new current best model
+                self.model.save(filename = 'best-' + str(bestcnt) + '.tar') # save it as the new current best model
+                bestcnt += 1
                 self.tree.reset() # reset the tree, since now the neural network has changed
 
                 # reset also the training data
@@ -72,16 +74,21 @@ class Trainer:
         res = training_game.play()
 
         # now can read out the history and convert it into training data
-        prob_data = np.array(player_1.prob_history + player_2.prob_history)
+        prob_data = np.array(player_1.get_prob_history() + player_1.get_mirrored_prob_history() +
+                             player_2.get_prob_history() + player_2.get_mirrored_prob_history())
 
         if res == PLAYER_1_WINS:
-            value_data = np.concatenate((np.full(player_1.moves_played, 1.0), np.full(player_2.moves_played, -1.0)))
+            value_data = np.concatenate((np.full(player_1.moves_played, 1.0), np.full(player_1.moves_played, 1.0),
+                                         np.full(player_2.moves_played, -1.0), np.full(player_2.moves_played, -1.0)))
         elif res == PLAYER_2_WINS:
-            value_data = np.concatenate((np.full(player_1.moves_played, -1.0), np.full(player_2.moves_played, 1.0)))
+            value_data = np.concatenate((np.full(player_1.moves_played, -1.0), np.full(player_1.moves_played, -1.0),
+                                         np.full(player_2.moves_played, 1.0), np.full(player_2.moves_played, 1.0)))
         elif res == DRAW:
-            value_data = np.concatenate((np.full(player_1.moves_played, 0.0), np.full(player_2.moves_played, 0.0)))
+            value_data = np.concatenate((np.full(player_1.moves_played, 0.0), np.full(player_1.moves_played, 0.0),
+                                         np.full(player_2.moves_played, 0.0), np.full(player_2.moves_played, 0.0)))
 
-        board_data = np.squeeze(np.stack(player_1.get_board_history() + player_2.get_board_history(), axis = 0), axis = 1)
+        board_data = np.squeeze(np.stack(player_1.get_board_history() + player_1.get_mirrored_board_history() +
+                                         player_2.get_board_history() + player_2.get_mirrored_board_history(), axis = 0), axis = 1)
         bs = np.size(value_data)
         
         return np.split(board_data, bs, axis = 0), np.split(prob_data, bs, axis = 0), np.split(value_data, bs, axis = 0)

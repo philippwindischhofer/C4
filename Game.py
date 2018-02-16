@@ -12,10 +12,12 @@ class Game:
 
     # go through the game and return the winner
     def play(self):
+        self.board.print_board()
         while True:
             # player 1 is always the first one to move
             self.board.place_stone(self.player_1.move(self.board))
             self.board.print_board()
+
             winner = self.board.status
             if winner != NOT_TERMINATED:
                 break

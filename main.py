@@ -15,15 +15,17 @@ model.build()
 
 # make a trainer to train the model on self-play data
 # model.load(filename = 'best-1.tar') # keep going from the previous state of the art
-trainer = Trainer(model)
-trainer.setup()
-trainer.train_epoch(games = 50, training_epochs = 50, generations = 50)
+#trainer = Trainer(model)
+#trainer.setup()
+#trainer.train_epoch(games = 50, training_epochs = 50, generations = 50)
 
 # evaluate the trained model against a random player
-#model.load(filename = 'best.tar')
-#wins, draws = Evaluator.combat_random(model, 100)
-#print("wins = " + str(wins))
+# model.load(filename = 'best-9.tar')
+# wins, draws = Evaluator.combat_random(model, 100)
+# print("wins = " + str(wins))
 
 # evaluate the trained model against a human player
-#model.load(filename = 'test-1.tar')
-#Evaluator.combat_human(model, 1)
+model.load(folder = 'models', filename = 'model-1.tar')
+Evaluator.combat_human(model, 1)
+
+#Evaluator.combat_humans(1)

@@ -63,6 +63,15 @@ class Board:
         retval[0][1] = (self.board == oplayer) * 1.0
         return retval
 
+    # returns the board position in a mirrored fashion, is just as valid (from the NN point of view) as the original setup
+    def get_mirrored_position(self):
+        retval = self.get_position()
+
+        retval[0][0] = np.flip(retval[0][0], axis = 1)
+        retval[0][1] = np.flip(retval[0][1], axis = 1)
+        
+        return retval
+
     def get_board_representation(self):
         return self.board.tostring()
         

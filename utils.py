@@ -27,7 +27,14 @@ class Evaluator:
     @staticmethod
     def combat_human(model, iterations):
         tree = MCTS(model)
-        player_1 = DeepPlayer(model, tree)
+        player_2 = DeepPlayer(model, tree)
+        player_1 = HumanPlayer()
+
+        return Evaluator.combat(player_1, player_2, iterations)
+
+    @staticmethod
+    def combat_humans(iterations):
+        player_1 = HumanPlayer()
         player_2 = HumanPlayer()
 
         return Evaluator.combat(player_1, player_2, iterations)

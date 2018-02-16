@@ -6,7 +6,7 @@ import copy
 class DeepPlayer:
     def __init__(self, model, tree):
         self.model = model
-        self.MCTS_iter = 40
+        self.MCTS_iter = 400
 
         # keep track of the probabilities and the game situations that were encountered
         self.prob_history = []
@@ -49,6 +49,21 @@ class DeepPlayer:
         retval = []
         for board in self.board_history:
             retval.append(board.get_position())
+        return retval
+
+    def get_mirrored_board_history(self):
+        retval = []
+        for board in self.board_history:
+            retval.append(board.get_mirrored_position())
+        return retval
+
+    def get_prob_history(self):
+        return self.prob_history
+
+    def get_mirrored_prob_history(self):
+        retval = []
+        for val in self.get_prob_history():
+            retval.append(np.flip(val, axis = 0))
         return retval
 
     def reset(self):
