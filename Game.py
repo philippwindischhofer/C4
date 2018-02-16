@@ -11,12 +11,14 @@ class Game:
         self.player_2 = player_2
 
     # go through the game and return the winner
-    def play(self):
-        self.board.print_board()
+    def play(self, verbose):
+        if verbose:
+            self.board.print_board()
         while True:
             # player 1 is always the first one to move
             self.board.place_stone(self.player_1.move(self.board))
-            self.board.print_board()
+            if verbose:
+                self.board.print_board()
 
             winner = self.board.status
             if winner != NOT_TERMINATED:
@@ -24,7 +26,8 @@ class Game:
 
             # then comes player 2
             self.board.place_stone(self.player_2.move(self.board))
-            self.board.print_board()
+            if verbose:
+                self.board.print_board()
             winner = self.board.status
             if winner != NOT_TERMINATED:
                 break

@@ -4,9 +4,10 @@ import numpy as np
 import copy
 
 class DeepPlayer:
-    def __init__(self, model, tree):
+    def __init__(self, model, tree, player_config):
         self.model = model
-        self.MCTS_iter = 400
+        self.player_config = player_config
+        self.MCTS_iter = self.player_config.MCTS_iter
 
         # keep track of the probabilities and the game situations that were encountered
         self.prob_history = []
@@ -38,7 +39,7 @@ class DeepPlayer:
         # now sample a move from the improved distribution
         self.moves_played += 1
 
-        if self.moves_played >= 0:
+        if self.moves_played >= self.player_config.temperature_switch_moves:
             action_played = action[np.argmax(prob)]
         else:
             action_played = np.random.choice(action, p = prob)

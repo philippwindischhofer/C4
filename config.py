@@ -9,4 +9,7 @@ class ModelConfig:
     num_cols = constants.GAME_COLS
 
     value_dense_units = 256
-    
+
+class DeepPlayerConfig:
+    MCTS_iter = 40
+    temperature_switch_moves = 5

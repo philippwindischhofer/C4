@@ -6,12 +6,13 @@ import copy
 from utils import Evaluator
 
 class Trainer:
-    def __init__(self, model):
+    def __init__(self, model, player_config):
         self.model = model
         self.optimizer = None
         self.tree = MCTS(model)
+        self.player_config = player_config
 
-    def train_epoch(self, games, training_epochs, generations):
+    def train_epoch(self, games, training_epochs, generations, self_evaluation_games = 40):
         board_data_acc = []
         prob_data_acc = []
         value_data_acc = []
@@ -23,8 +24,8 @@ class Trainer:
             for __ in range(games):
                 # have both players use the same underlying model ("self-play")
                 # the only reason that need two objects here is to keep track of their respective moves
-                player_1 = DeepPlayer(self.model, self.tree)
-                player_2 = DeepPlayer(self.model, self.tree)
+                player_1 = DeepPlayer(self.model, self.tree, self.player_config)
+                player_2 = DeepPlayer(self.model, self.tree, self.player_config)
                  
                 # prepare one additional game's worth of training data
                 board_data_new, prob_data_new, value_data_new = self._generate_training_data(player_1, player_2)
@@ -51,7 +52,7 @@ class Trainer:
 
             # now need to compare the old and the new model against each other to decide which one to keep
             print("Evaluating trained model")
-            wins, draws = Evaluator.combat_model(self.model, old_model, 40)
+            wins, draws = Evaluator.combat_model(self.model, old_model, self_evaluation_games)
             if wins < 0.55:
                 # the trained model works not significantly better than the older one, thus keep the older one and retry with more training data
                 self.model = old_model
@@ -71,7 +72,7 @@ class Trainer:
     def _generate_training_data(self, player_1, player_2):
         # first need to generate the training data
         training_game = Game(player_1, player_2)
-        res = training_game.play()
+        res = training_game.play(False)
 
         # now can read out the history and convert it into training data
         prob_data = np.array(player_1.get_prob_history() + player_1.get_mirrored_prob_history() +
