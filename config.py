@@ -11,5 +11,5 @@ class ModelConfig:
     value_dense_units = 256
 
 class DeepPlayerConfig:
-    MCTS_iter = 40
+    MCTS_iter = 30
     temperature_switch_moves = 5

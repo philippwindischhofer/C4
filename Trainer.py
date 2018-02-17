@@ -52,7 +52,7 @@ class Trainer:
 
             # now need to compare the old and the new model against each other to decide which one to keep
             print("Evaluating trained model")
-            wins, draws = Evaluator.combat_model(self.model, old_model, self_evaluation_games)
+            wins, draws = Evaluator.combat_model(self.model, old_model, self_evaluation_games, self.player_config)
             if wins < 0.55:
                 # the trained model works not significantly better than the older one, thus keep the older one and retry with more training data
                 self.model = old_model

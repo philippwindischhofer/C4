@@ -12,4 +12,4 @@ class ModelConfig:
 
 class DeepPlayerConfig:
     MCTS_iter = 50
-    temperature_switch_moves = 5
+    temperature_switch_moves = 0

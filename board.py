@@ -17,30 +17,49 @@ class Board:
         self.number_moves = 0
         self.status = NOT_TERMINATED
         self.board = np.full((rows, cols), FREE)
-
-    def _print_hor_separator(self):
-        for i in range(self.cols * 3):
-            print(colored('-', 'grey'), end = '')
-        print('')    
-        
+    
     def _print_board_header(self):
         for i in range(0, self.cols):
-            print(colored(' ' + str(i) + ' ', 'grey'), end = '')
-        print('')
-        self._print_hor_separator()
+            print(colored(u'\u2502 ' + str(i) + ' ', 'grey'), end = '')
+        print(colored(u'\u2502'), end = '\n')
+        self._print_box_separator()
+
+    def _print_box_header(self):
+        print(colored(u'\u250C', 'grey'), end = '')
+        for i in range(0, self.cols - 1):
+            print(colored(u'\u2500\u2500\u2500\u252C', 'grey'), end = '')
+        print(colored(u'\u2500\u2500\u2500\u2510', 'grey'), end = '\n')
+
+    def _print_box_separator(self):
+        print(colored(u'\u251C', 'grey'), end = '')
+        for i in range(0, self.cols - 1):
+            print(colored(u'\u2500\u2500\u2500\u253C', 'grey'), end = '')
+        print(colored(u'\u2500\u2500\u2500\u2524', 'grey'), end = '\n')
+
+    def _print_box_footer(self):
+        print(colored(u'\u2514', 'grey'), end = '')
+        for i in range(0, self.cols - 1):
+            print(colored(u'\u2500\u2500\u2500\u2534', 'grey'), end = '')
+        print(colored(u'\u2500\u2500\u2500\u2518', 'grey'), end = '\n')
         
     def print_board(self):
+        self._print_box_header()
         self._print_board_header()
         for i in range(self.rows):
             for j in range(self.cols):
+                print(colored(u'\u2502 ', 'grey'), end = '')
                 if self.board[i, j] == PLAYER_1:
-                    print(colored(' ' + PLAYER_1_SYMB +' ', PLAYER_1_COLOR), end = '')
+                    print(colored('' + u'\u25CF' + ' ', PLAYER_1_COLOR), end = '')
                 elif self.board[i, j] == PLAYER_2:
-                    print(colored(' ' + PLAYER_2_SYMB + ' ', PLAYER_2_COLOR), end = '')
+                    print(colored('' + u'\u25CF' + ' ', PLAYER_2_COLOR), end = '')
                 else:
-                    print(colored('   ', 'grey'), end = '')
-            print('')
-        self._print_hor_separator()
+                    print(colored('  ', 'grey'), end = '')
+            print(colored(u'\u2502', 'grey'), end = '\n')
+            if i < self.rows - 1:
+                self._print_box_separator()
+            else:
+                self._print_box_footer()
+        print('')
         
     def get_legal_moves(self):
         retval = []
