@@ -24,3 +24,5 @@ CUDA_VISIBLE_DEVICES="" optirun python ./main.py
 ```
 
 ![example game](https://raw.githubusercontent.com/philippwindischhofer/C4/master/game.png)
+
+For slightly more background information, see [this blog post](https://am241.wordpress.com/2018/02/18/how-to-make-a-computer-play-connect-four-without-knowing-the-rules-2/).
