@@ -10,11 +10,11 @@ from optparse import OptionParser
 import sys
 
 parser = OptionParser()
-parser.add_option("-t", "--train", action = "store_true", dest = "train")
-parser.add_option("-f", "--file", action = "store", type = "string", dest = "model_file")
-parser.add_option("-c", "--computer", action = "store_true", dest = "computer_opponent")
-parser.add_option("-m", "--manual", action = "store_true", dest = "human_opponent")
-parser.add_option("-b", "--benchmark", action = "store_true", dest = "benchmark")
+parser.add_option("-t", "--train", action = "store_true", dest = "train", help = "train a new model or resume training of an already existing model [if specified with -f]")
+parser.add_option("-f", "--file", action = "store", type = "string", dest = "model_file", help = "specifies a model to use for training, benchmarking or manual play")
+parser.add_option("-c", "--computer", action = "store_true", dest = "computer_opponent", help = "launches a new game against a model [specified with -f]")
+parser.add_option("-m", "--manual", action = "store_true", dest = "human_opponent", help = "launches a new game against a human opponent")
+parser.add_option("-b", "--benchmark", action = "store_true", dest = "benchmark", help = "benchmarks a model [specified with -f] against a random player")
 
 (options, args) = parser.parse_args()
 
