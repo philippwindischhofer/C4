@@ -22,3 +22,5 @@ If CUDA is installed and Tensorflow set up to run on a GPU, but you still want t
 ```
 CUDA_VISIBLE_DEVICES="" optirun python ./main.py
 ```
+
+![example game](https://raw.githubusercontent.com/philippwindischhofer/C4/master/game.png)
