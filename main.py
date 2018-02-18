@@ -6,30 +6,55 @@ from model import *
 from DeepPlayer import *
 from Trainer import *
 from utils import Evaluator
+from optparse import OptionParser
+import sys
 
-#from config_manual_play import *
-from config import *
-#from config_deep import *
+parser = OptionParser()
+parser.add_option("-t", "--train", action = "store_true", dest = "train")
+parser.add_option("-f", "--file", action = "store", type = "string", dest = "model_file")
+parser.add_option("-c", "--computer", action = "store_true", dest = "computer_opponent")
+parser.add_option("-m", "--manual", action = "store_true", dest = "human_opponent")
+parser.add_option("-b", "--benchmark", action = "store_true", dest = "benchmark")
+
+(options, args) = parser.parse_args()
+
+if options.train:
+    from config import *
+else:
+    from config_manual_play import *
 
 model_config = ModelConfig()
+player_config = DeepPlayerConfig()
+
 model = C4Model(model_config)
 model.build()
 
-player_config = DeepPlayerConfig()
-
-# make a trainer to train the model on self-play data
-# model.load(folder = 'models', filename = 'model-1.tar') # keep going from the previous state of the art
-trainer = Trainer(model, player_config)
-trainer.setup()
-trainer.train_epoch(games = 100, training_epochs = 50, generations = 50)
-
-# evaluate the trained model against a random player
-#model.load(filename = 'best-2.tar')
-#wins, draws = Evaluator.combat_random(model, 100, player_config)
-#print("wins = " + str(wins))
-
-# evaluate the trained model against a human player
-#model.load(folder = 'models', filename = 'model-2.tar')
-#Evaluator.combat_human(model, 1, player_config)
-
-#Evaluator.combat_humans(1)
+if options.train:
+    # make a trainer to train the model on self-play data
+    if options.model_file != None:
+        print("resuming training of " + options.model_file)
+        model.load(folder = 'models', filename = options.model_file) # keep going from the previous state of the art
+    else:
+        print("start training from scratch")
+    trainer = Trainer(model, player_config)
+    trainer.setup()
+    trainer.train_epoch(games = 100, training_epochs = 50, generations = 50)
+elif options.computer_opponent:
+    # evaluate the trained model against a human player
+    if options.model_file != None:
+        model.load(folder = 'models', filename = options.model_file)
+    else:
+        print("Error: require -f to specify the model")
+        sys.exit(1)
+    Evaluator.combat_human(model, 1, player_config)
+elif options.human_opponent:
+    Evaluator.combat_humans(1)
+elif options.benchmark:
+    # evaluate the trained model against a random player
+    if options.model_file != None:
+        model.load(folder = 'models', filename = options.model_file)
+    else:
+        print("Error: require -f to specify the model")
+        sys.exit(1)
+    wins, draws = Evaluator.combat_random(model, 100, player_config)
+    print("wins = " + str(wins))
